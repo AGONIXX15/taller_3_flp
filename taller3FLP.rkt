@@ -16,6 +16,7 @@
   ; Ignora espacios en blanco, tabs y saltos de línea
   (white-sp (whitespace) skip)
 
+  
   ; Identificadores: inician con '@' seguido de letras o dígitos
   ; Ejemplos válidos: @x, @var1, @miVariable
   (identifier ("@" (or letter digit) (arbno (or letter digit))) symbol)
