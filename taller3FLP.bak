@@ -1,0 +1,71 @@
+#lang eopl
+;*************************************
+;TALLER 3 FLP
+;*************************************
+;Samuel banguero 2418671
+;Sebastian rubio 2459628
+;Camilo Riscanevo 2459753-3743
+;
+;repositorio git hub: https://github.com/AGONIXX15/taller_3_flp.git
+
+
+;especificacion lexica del taller 3
+(define scanner-spec-simple-interpreter
+'(
+  (white-sp (whitespace) skip)
+  (identifier ("@" (or letter digit) (arbno (or letter digit))) symbol)
+  (number(digit (arbno digit)) number) ; [0-9][0-9]*
+  (number ("-" digit (arbno digit)) number) ; -[0-9][0-9]*
+  (number (digit (arbno digit) "." digit (arbno digit)) number) ; [0-9][0-9]*.[0-9][0-9]*
+  (number ("-" digit (arbno digit) "." digit (arbno digit)) number) ; -[0-9][0-9]*.[0-9][0-9]*
+  (text (letter (arbno (or letter digit "_"))) string)
+  ))
+
+;gramatica del taller 3
+(define grammar-simple-interpreter
+  '((program (expression) a-program)
+    (expression (number) number-exp)
+    (expression (identifier) var-exp)
+    (expression ("\"" text "\"") text-lit)
+    (expression ("(" expression prim-binary expression ")") binary-exp)
+    (expression ( prim-unary "(" expression ")" ) unary-exp)
+    (expression ("Si" expression "{" expression "}" "sino" "{" expression "}") condicional-exp)
+    (expression ("procedimiento" "(" (separated-list identifier ",") ")" "{" expression "}") procedimiento-ex)
+    (expression ("declarar" "(" (arbno identifier "=" expression ";") ")" "{" expression "}") variableLocal-exp)
+    (expression ("evaluar" expression "(" (separated-list expression ",") ")" "finEval") app-exp)
+    (expression ("declarar-recursivo" "(" (arbno identifier "=" expression ";") ")" "{" expression "}") variableLocalRec-exp)
+    (prim-binary ("+") prim-binary-add)
+    (prim-binary ("~") prim-binary-sub)
+    (prim-binary ("/") prim-binary-div)
+    (prim-binary ("*") prim-binary-mul)
+    (prim-binary ("==") prim-binary-equal)
+    (prim-binary ("<") prim-binary-less)
+    (prim-binary ("<=") prim-binary-less-equal)
+    (prim-binary (">") prim-binary-greater)
+    (prim-binary (">=") prim-binary-greater-equal)
+    (prim-binary ("!=") prim-binary-different)
+    (prim-binary ("concat") prim-binary-concat)
+    (prim-unary ("longitud") prim-unary-length)
+    (prim-unary ("add1") prim-unary-add1)
+    (prim-unary ("sub1") prim-unary-sub1)
+    (prim-unary ("neg") prim-unary-neg)
+    ))
+
+
+
+;copiado del interpretador del profesor
+
+(sllgen:make-define-datatypes scanner-spec-simple-interpreter grammar-simple-interpreter)
+
+(define show-the-datatypes
+  (lambda () (sllgen:list-define-datatypes scanner-spec-simple-interpreter grammar-simple-interpreter)))
+
+;prueben que la gramatica este funcionando pls
+(define scan&parse
+  (sllgen:make-string-parser scanner-spec-simple-interpreter grammar-simple-interpreter))
+
+(define just-scan
+  (sllgen:make-string-scanner scanner-spec-simple-interpreter grammar-simple-interpreter))
+
+(define scheme-value? (lambda (v) #t))
+
