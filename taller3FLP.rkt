@@ -15,7 +15,6 @@
 '(
   ; Ignora espacios en blanco, tabs y saltos de línea
   (white-sp (whitespace) skip)
-
   
   ; Identificadores: inician con '@' seguido de letras o dígitos
   ; Ejemplos válidos: @x, @var1, @miVariable
@@ -47,8 +46,6 @@
     ; Un programa es exactamente una expresión
     (program (expression) a-program)
 
-    ; EXPRESIONES BÁSICAS
-
     ; Literal numérico: cualquier número definido en el scanner
     (expression (number) number-exp)
 
@@ -58,8 +55,6 @@
     ; Literal de texto: cualquier texto entre comillas dobles
     ; Las comillas se escapan con \" en la gramática
     (expression ("\"" text "\"") text-lit)
-
-    ; EXPRESIONES CON PRIMITIVAS
 
     ; Operación binaria en notación infija: (exp1 op exp2)
     ; Ejemplo: (3 + 4), (@x * @y)
@@ -74,7 +69,7 @@
     ; La condición usa aritmética de booleanos: 0 es falso, otro valor es verdadero
     (expression ("Si" expression "{" expression "}" "sino" "{" expression "}") condicional-exp)
 
-    ; --- PROCEDIMIENTOS (funciones anónimas) ---
+    ; PROCEDIMIENTOS (funciones anónimas)
     ; procedimiento (@param1, @param2, ...) { cuerpo }
     ; Crea una cerradura que captura el ambiente actual
     (expression ("procedimiento" "(" (separated-list identifier ",") ")" "{" expression "}") procedimiento-ex)
@@ -119,33 +114,28 @@
     ))
 
 
-;COPIADO DEL PROFESOR
-(sllgen:make-define-datatypes scanner-spec-simple-interpreter grammar-simple-interpreter)
 
-(define show-the-datatypes
-  (lambda () (sllgen:list-define-datatypes scanner-spec-simple-interpreter grammar-simple-interpreter)))
+; TIPO DE DATO AMBIENTES
+; Un ambiente es una estructura que asocia nombres de variables con sus valores.
+; Se implementa como una lista enlazada
 
-(define scan&parse
-  (sllgen:make-string-parser scanner-spec-simple-interpreter grammar-simple-interpreter))
-
-;VERIFIQUEN CON ESTO QUE TODO ESTE CORRECTO PLS
-(define just-scan
-  (sllgen:make-string-scanner scanner-spec-simple-interpreter grammar-simple-interpreter))
-
-(define scheme-value? (lambda (v) #t))
-
-; definimos el tipo de dato de environment
 (define-datatype environment environment?
+   ; Ambiente vacío: representa el final de la cadena de búsqueda
   (empty-env-record)
+   ; Ambiente extendido: agrega un marco con una lista de símbolos y sus valores al ambiente anterior
   (extended-env-record (syms (list-of symbol?))
                        (vals (list-of scheme-value?))
                        (env environment?))
+  ; Ambiente recursivo: almacena procedimientos que pueden referenciarse a sí mismos
+  ; Guarda nombres, parámetros y cuerpos por separado para reconstruir la cerradura al buscar
   (recursive-extended-env-record (proc-names (list-of symbol?))
                                  (ids (list-of (list-of symbol?)))
                                  (bodies (list-of expression?))
                                  (env environment?))
   )
 
+; empty-env: () -> environment
+; Crea un ambiente completamente vacío (base de la cadena de ambientes)
 (define empty-env (lambda ()
                     (empty-env-record)
  ))
@@ -165,22 +155,20 @@
      bodies
      env)))
 
-; el ambiente inicial del interprete
+; init-env: () -> environment
+; Ambiente inicial del intérprete: predefine cinco variables (@a..@e) con valores de ejemplo
 (define init-env (lambda ()
       (extend-env '(@a @b @c @d @e) '(1 2 3 "hola" "FLP") (empty-env))
 ))
 
-; busca un elemento en la lista
-(define list-find-position (lambda (lst v [pos 0])
-   (cond
-     [(null? lst) #f]
-     [(equal? v (car lst)) pos]
-     [else (list-find-position (cdr lst) v (+ pos 1))]
-     )
-))
 
-
-; buscar un simbolo en un ambiente
+; buscar-variable:
+; Recorre la cadena de ambientes buscando el símbolo dado.
+; - En empty-env-record: la variable no existe
+; - En extended-env-record: busca la posición del símbolo en el marco actual;
+;   si no está, continúa en el ambiente anterior
+; - En recursive-extended-env-record: si encuentra el símbolo entre los procedimientos recursivos,
+;   construye y retorna la cerradura usando el ambiente recursivo como contexto (permite recursión)
 (define buscar-variable (lambda (sym env)
                     (cases environment env
                     (empty-env-record () (eopl:error buscar-variable "la variable no existe" sym))
@@ -199,54 +187,34 @@
                                                        (buscar-variable sym old-env))))
                       )))
 
+
+
+; TIPO DE DATO PROCEDIMIENTOS 
+; Una cerradura (closure) captura: la lista de parámetros, el cuerpo de la función
+; y el ambiente en el momento de su definición
 (define-datatype procval procval?
 (closure (ids (list-of symbol?)) (body expression?) (env environment?))
 )
 
-(define valor-verdad? (lambda (boolean)
-                        (if boolean 1 0)
-                        ))
-
-(define evaluate-prim-binary (lambda (left op right)
-                              (cases prim-binary op
-                                (prim-binary-add () (+ left right))
-                                (prim-binary-sub () (- left right))
-                                (prim-binary-div () (/ left right))
-                                (prim-binary-mul () (* left right))
-                                (prim-binary-equal () (valor-verdad? (equal? left right)))
-                                (prim-binary-less () (valor-verdad? (< left right)))
-                                (prim-binary-less-equal () (valor-verdad? (<= left right)))
-                                (prim-binary-greater () (valor-verdad? (> left right)))
-                                (prim-binary-greater-equal () (valor-verdad? (>= left right)))
-                                (prim-binary-different () (valor-verdad? (not (equal? left right))))
-                                (prim-binary-concat () (string-append left right))
-                                                   )
-                              )
-                             )
-
-(define evaluate-prim-unary (lambda (op left)
-                              (cases prim-unary op
-                                (prim-unary-length () (string-length left))
-                                (prim-unary-add1 () (+ left 1))
-                                (prim-unary-sub1 () (- left 1))
-                                (prim-unary-neg () (not left))
-                                )))
-
-(define evaluate-list-expr (lambda (exprs env)
-                             (map (lambda(x) (evaluate-expr x env)) exprs)))
-
+; Retorna #t si la expresión es un procedimiento (procedimiento-ex), #f en otro caso
+; Útil para distinguir procedimientos de valores simples en declarar-recursivo
 (define proc-expr? (lambda (expr)
                      (cases expression expr
                        (procedimiento-ex (ids body) #t)
                        (else #f))))
+
+; Extrae la lista de parámetros de un procedimiento-ex
+; Precondición: la expresión debe ser un procedimiento-ex (verificar con proc-expr? antes de llamar)
 (define get-proc-ids
   (lambda (expr)
     (cases expression expr
       (procedimiento-ex (ids body)
                         ids)
       (else eopl:error 'get-proc-ids "no es un procedimiento ~s" expr))))
-; get-proc-body: <expression> -> expression: para no tener incovenientes deberia recibir un procedimiento-ex
-; usar validacion para esto proc-expr?
+
+; get-proc-body: <expression> -> expression:
+; Extrae el cuerpo de un procedimiento-ex
+; Precondición: la expresión debe ser un procedimiento-ex (verificar con proc-expr? antes de llamar)
 (define get-proc-body
   (lambda (expr)
     (cases expression expr
@@ -277,9 +245,18 @@
               ))
 
 
-(define evaluate-conditional (lambda (number)
-                               (if (zero? number) #f #t)))
+;EVALUADORES
+; Desempaqueta el programa y evalúa su expresión
+; en el ambiente inicial predefinido
+(define eval-program
+  (lambda (pgm)
+    (cases program pgm
+      (a-program (body)
+                 (evaluate-expr body (init-env))))))
 
+
+; evalúa una expresión en el ambiente dado.
+; Cada caso corresponde a una forma sintáctica definida en la gramática:
 (define evaluate-expr (lambda (expr env)
                  (cases expression expr
                    (number-exp (n) n)
@@ -291,7 +268,7 @@
                                                (evaluate-expr right env)))
                    (unary-exp (op left) (evaluate-prim-unary op (evaluate-expr left env)))
                    (condicional-exp (condition true-exp false-exp)
-                                  (if (evaluate-conditional (evaluate-expr condition env)) ; haciendo if al if
+                                  (if (valor-verdad?  (evaluate-expr condition env)) ; haciendo if al if
                                       (evaluate-expr true-exp env)
                                       (evaluate-expr false-exp env)))
                    (variableLocal-exp (ids exprs body) 
@@ -322,3 +299,110 @@
                                            )))
                       ))
 
+
+; Aplica una operación unaria sobre su único operando ya evaluado.
+; longitud espera string; add1/sub1/neg esperan número
+(define evaluate-prim-unary (lambda (op left)
+                              (cases prim-unary op
+                                (prim-unary-length () (string-length left))
+                                (prim-unary-add1 () (+ left 1))
+                                (prim-unary-sub1 () (- left 1))
+                                (prim-unary-neg () (booleano-a-numero (zero? left)))
+                                )))
+
+; Aplica una operación binaria sobre sus dos operandos ya evaluados.
+; Los operadores de comparación retornan 1 (verdadero) o 0 (falso).
+; concat espera dos strings; los demás operadores esperan números.
+(define evaluate-prim-binary (lambda (left op right)
+                              (cases prim-binary op
+                                (prim-binary-add () (+ left right))
+                                (prim-binary-sub () (- left right))
+                                (prim-binary-div () (/ left right))
+                                (prim-binary-mul () (* left right))
+                                (prim-binary-equal () (booleano-a-numero (equal? left right)))
+                                (prim-binary-less () (booleano-a-numero (< left right)))
+                                (prim-binary-less-equal () (booleano-a-numero (<= left right)))
+                                (prim-binary-greater () (booleano-a-numero (> left right)))
+                                (prim-binary-greater-equal () (booleano-a-numero (>= left right)))
+                                (prim-binary-different () (booleano-a-numero (not (equal? left right))))
+                                (prim-binary-concat () (string-append left right))
+                                                   )
+                              )
+                             )
+
+
+; Evalúa una lista de expresiones en el mismo ambiente, retornando la lista de resultados.
+; Usado para evaluar argumentos de app-exp y las expresiones de variableLocal-exp.
+(define evaluate-list-expr (lambda (exprs env)
+                             (map (lambda(x) (evaluate-expr x env)) exprs)))
+
+
+
+
+;FUNCIONES AUXILIARES
+; Busca v en lst y retorna su índice (base 0) si lo encuentra, #f si no está.
+; El tercer argumento pos es el acumulador del índice actual (por defecto 0).
+(define list-find-position (lambda (lst v [pos 0])
+   (cond
+     [(null? lst) #f]
+     [(equal? v (car lst)) pos]
+     [else (list-find-position (cdr lst) v (+ pos 1))]
+     )
+))
+
+; Convierte un booleano de Scheme al sistema aritmético de verdad del lenguaje:
+; #t -> 1, #f -> 0
+(define booleano-a-numero (lambda (boolean)
+                        (if boolean 1 0)
+                        ))
+
+
+; Interpreta un número como valor de verdad del lenguaje:
+; 0 es falso, cualquier otro valor (incluidos negativos) es verdadero
+(define valor-verdad? (lambda (number)
+                               (if (zero? number) #f #t)))
+
+
+
+
+(sllgen:make-define-datatypes scanner-spec-simple-interpreter grammar-simple-interpreter)
+
+(define show-the-datatypes
+  (lambda () (sllgen:list-define-datatypes scanner-spec-simple-interpreter grammar-simple-interpreter)))
+
+(define scan&parse
+  (sllgen:make-string-parser scanner-spec-simple-interpreter grammar-simple-interpreter))
+
+(define just-scan
+  (sllgen:make-string-scanner scanner-spec-simple-interpreter grammar-simple-interpreter))
+
+(define scheme-value? (lambda (v) #t))
+
+; INTERPRETADOR
+; Lee una expresión del usuario, la evalúa con eval-program y muestra el resultado.
+; Usa el prompt "--> " para indicar que espera entrada.
+(define interpretador
+  (sllgen:make-rep-loop  "--> "
+    (lambda (pgm) (eval-program  pgm)) 
+    (sllgen:make-stream-parser 
+      scanner-spec-simple-interpreter
+      grammar-simple-interpreter)))
+
+
+
+;SOLUCION DE LOS EJERCICIOS
+
+; 9b) Factorial recursivo
+; evaluar @factorial(5) finEval  -> 120
+
+; declarar-recursivo (
+;   @factorial = procedimiento (@n) {
+;     Si @n {
+;       (@n * evaluar @factorial(sub1(@n)) finEval)
+;     } sino {
+;       1
+;     }
+;   };
+; ) {
+;   evaluar @factorial(5) finEval
+; }
