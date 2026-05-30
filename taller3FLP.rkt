@@ -35,7 +35,7 @@
   ; Texto: inicia con letra, seguido de letras, dígitos o guión bajo
   ; Ejemplos válidos: hola, mi_texto, palabra123
   ; Las comillas se manejan en la gramática, no aquí
-  (text ((or "" letter) (arbno (or letter digit "" ":"))) string)
+  (text ((or "_" letter) (arbno (or letter digit "_" ":"))) string)
   ))
 
 ; ESPECIFICACIÓN GRAMATICAL
