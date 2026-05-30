@@ -451,39 +451,39 @@
 ;
 ;
 ; 9e)
-;     declarar (
-;  @integrantes = "Samuel_y_Sebastian_y_Camilo";
+; (declarar (
+;   @integrantes = "Samuel_y_Sebastian_y_Camilo";
 ; ) {
-;    declarar (
-;      @saludar = procedimiento(@string) {
-;        procedimiento() {
-;          ("Hola:" concat @string)
-;          }
-;        };
-;    ) {
-;        declarar (
-;          @decorate=evaluar @saludar(@integrantes) finEval;
-;        ) {
-;            evaluar @decorate() finEval
-;          }
-;      }
-;  }
-;
+;     declarar (
+;       @saludar = procedimiento(@string) {
+;         procedimiento() {
+;           ("Hola:" concat @string)
+;         }
+;       };
+;     ) {
+;         declarar (
+;           @decorate = evaluar @saludar(@integrantes) finEval;
+;         ) {
+;             evaluar @decorate() finEval
+;         }
+;     }
+; })
+
 ; 9f)
-;declarar (
-;  @integrantes = "Samuel_y_Sebastian_y_Camilo";
-;) {
-;    declarar (
-;      @saludar = procedimiento(@string) {
-;        procedimiento(@str) {
-;          (("Hola:" concat @string) concat @str)
-;          }
-;        };
-;    ) {
-;        declarar (
-;          @decorate=evaluar @saludar(@integrantes) finEval;
-;        ) {
-;            evaluar @decorate("Y_FLP") finEval
-;          }
-;      }
-;  }
+; (declarar (
+;   @integrantes = "Samuel_y_Sebastian_y_Camilo";
+; ) {
+;     declarar (
+;       @saludar = procedimiento(@string) {
+;         procedimiento(@str) {
+;           (("Hola:" concat @string) concat @str)
+;         }
+;       };
+;     ) {
+;         declarar (
+;           @decorate = evaluar @saludar(@integrantes) finEval;
+;         ) {
+;             evaluar @decorate("Y_FLP") finEval
+;         }
+;     }
+; })
