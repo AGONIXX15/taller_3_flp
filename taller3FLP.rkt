@@ -35,7 +35,7 @@
   ; Texto: inicia con letra, seguido de letras, dígitos o guión bajo
   ; Ejemplos válidos: hola, mi_texto, palabra123
   ; Las comillas se manejan en la gramática, no aquí
-  (text (letter (arbno (or letter digit "_"))) string)
+  (text ((or "" letter) (arbno (or letter digit "" ":"))) string)
   ))
 
 ; ESPECIFICACIÓN GRAMATICAL
@@ -389,9 +389,33 @@
       grammar-simple-interpreter)))
 
 
-
+(interpretador)
 ;SOLUCION DE LOS EJERCICIOS
 
+;
+;9a)Sumar Digitos
+;declarar-recursivo(
+;@helper=procedimiento(@n,@m,@i) {
+;        Si ((@m * @i) <= @n) 
+;        {Si ((@n ~ (@m * @i)) < @m) {(@n ~ (@m * @i))} sino {
+;            evaluar @helper (@n,@m, (@i + 1)) finEval
+;          }} sino {@n}
+;      };
+;@modulo=procedimiento(@n, @m) {
+;    evaluar @helper(@n,@m, 0) finEval
+;  };
+;@div10=procedimiento(@n) {
+;    ((@n ~ evaluar @modulo(@n,10) finEval) / 10)
+;  };
+;@sumarDigitos=procedimiento(@n) {
+;    Si (@n == 0) {0} sino {(evaluar @modulo(@n,10) finEval +
+;    evaluar @sumarDigitos (evaluar @div10 (@n) finEval) finEval)}
+;  };
+;) 
+;  {
+;    evaluar @sumarDigitos (111) finEval
+;  }
+;
 ; 9b) Factorial recursivo
 ; evaluar @factorial(5) finEval  -> 120
 
@@ -406,3 +430,60 @@
 ; ) {
 ;   evaluar @factorial(5) finEval
 ; }
+;
+; 9c) Potencia recursivo
+; declarar-recursivo (
+;   @potencia=procedimiento(@n, @m) {
+;     Si (@m == 0) {1} sino {(@n * evaluar @potencia(@n,sub1(@m)) finEval)}
+;    };
+; ) {
+;     evaluar @potencia(2,8) finEval
+;   }
+;
+;9d) Suma rango
+;     declarar-recursivo (
+;   @sumaRango=procedimiento(@a, @b) {
+;       Si (@a == @b) {@b} sino {(@a + evaluar @sumaRango(add1(@a), @b) finEval)}
+;     };
+; ) {
+;    evaluar @sumaRango(2,5) finEval
+;   }
+;
+;
+; 9e)
+;     declarar (
+;  @integrantes = "Samuel_y_Sebastian_y_Camilo";
+; ) {
+;    declarar (
+;      @saludar = procedimiento(@string) {
+;        procedimiento() {
+;          ("Hola:" concat @string)
+;          }
+;        };
+;    ) {
+;        declarar (
+;          @decorate=evaluar @saludar(@integrantes) finEval;
+;        ) {
+;            evaluar @decorate() finEval
+;          }
+;      }
+;  }
+;
+; 9f)
+;declarar (
+;  @integrantes = "Samuel_y_Sebastian_y_Camilo";
+;) {
+;    declarar (
+;      @saludar = procedimiento(@string) {
+;        procedimiento(@str) {
+;          (("Hola:" concat @string) concat @str)
+;          }
+;        };
+;    ) {
+;        declarar (
+;          @decorate=evaluar @saludar(@integrantes) finEval;
+;        ) {
+;            evaluar @decorate("Y_FLP") finEval
+;          }
+;      }
+;  }
