@@ -451,7 +451,7 @@
 ;
 ;
 ; 9e)
-; (declarar (
+; declarar (
 ;   @integrantes = "Samuel_y_Sebastian_y_Camilo";
 ; ) {
 ;     declarar (
@@ -467,10 +467,10 @@
 ;             evaluar @decorate() finEval
 ;         }
 ;     }
-; })
+; }
 
 ; 9f)
-; (declarar (
+; declarar (
 ;   @integrantes = "Samuel_y_Sebastian_y_Camilo";
 ; ) {
 ;     declarar (
@@ -486,4 +486,4 @@
 ;             evaluar @decorate("Y_FLP") finEval
 ;         }
 ;     }
-; })
+; }
